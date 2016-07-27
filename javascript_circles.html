@@ -1,0 +1,226 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Javascript Circles</title>
+    <style>
+        html, body, svg {
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+    function Circle(x, y, r, elementID)
+    {
+        // private function to make random numbers
+        var randomNum = function (min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // create SVG element and return it
+        var createSVG = function (tag, attr) {
+
+            var svgElement = document.createElementNS('http://www.w3.org/2000/svg', tag);
+
+            for(var k in attr){
+                svgElement.setAttribute(k, attr[k]);
+            }
+
+            return svgElement;
+        }
+
+        // circle coordinates and radius
+        this.info = {
+            x: x,
+            y: y,
+            r: r,
+            id: elementID
+        };
+
+        // function executes when class is instantiated
+        this.initialize = function () {
+            // random velocity for circle
+            this.info.velocity = {
+                x: randomNum(-4,4),
+                y: randomNum(-4,4)
+            };
+
+            // create circle
+            var circle = createSVG('circle', {
+                cx: this.info.x,
+                cy: this.info.y,
+                r:  this.info.r,
+                id: this.info.id,
+                fill: "#"+((1<<24) * Math.random()|0).toString(16) // random colors
+            });
+
+            // append circle to svg element
+            document.getElementById('svg').appendChild(circle);
+        }
+
+        // function to update circle coordinates
+        this.update = function (time) {
+            var circleElement = document.getElementById(this.info.id);
+
+            // check if circle is going outside browser, and if so reverse velocity for x axis
+            if(this.info.x + this.info.r > document.body.clientWidth)
+            {
+                this.info.x = document.body.clientWidth - (this.info.r);
+                this.info.velocity.x = this.info.velocity.x * -1;
+            }
+            else if(this.info.x - this.info.r < 0)
+            {
+                this.info.x = 0 + this.info.r;
+                this.info.velocity.x = this.info.velocity.x * -1;
+            }
+
+            // check if circle is going outside browser, and if so reverse velocity for x axis
+            else if(this.info.y + this.info.r > document.body.clientHeight)
+            {
+                this.info.y = document.body.clientHeight - (this.info.r);
+                this.info.velocity.y = this.info.velocity.y * -1;
+            }
+            else if(this.info.y - this.info.r < 0)
+            {
+                this.info.y = 0 + this.info.r;
+                this.info.velocity.y = this.info.velocity.y * -1;
+            }
+
+            // update circle coordinates
+            else
+            {
+                this.info.x = this.info.x + (this.info.velocity.x * time);
+                this.info.y = this.info.y + (this.info.velocity.y * time);
+            }
+
+            // set new circle coordinates
+            circleElement.setAttribute("cx", this.info.x);
+            circleElement.setAttribute("cy", this.info.y);
+        }
+
+        this.initialize();
+    }
+
+    // event loop
+    function PlayGround() {
+        var self = this;
+        var counter = 0; // counts number of circles made
+        var circles = []; // array will hold all circles created in app
+
+        // private function for updating circles array
+        var circleArray = function (new_arr) {
+            circles = new_arr;
+        }
+
+        var detectCollision = function (circle1, circle2) {
+            var dx = circle1.info.x - circle2.info.x;
+            var dy = circle1.info.y - circle2.info.y;
+            var distance = parseFloat(circle1.info.r + circle2.info.r);
+
+            return (Math.pow(dx, 2) + Math.pow(dy, 2) <= Math.pow(distance, 2));
+        }
+
+        // private function for detection circle collision
+        var collide = function (circle, circles) {
+
+            // loop through circles in array
+            for(i in circles){
+
+                // filter so new circle in not included in loop
+                if(i != circle.info.id){
+
+                    // check if two circles collide
+                    if(detectCollision(circle, circles[i]) == true){
+
+                        // merge two circles that collided
+                        self.mergeCircles(circle, circles[i], circles);
+                    }
+                }
+            }
+        }
+
+        // loop updates circle's position on screen
+        this.loop = function () {
+            for(circle in circles){
+
+                // update circle position
+                circles[circle].update(1);
+
+                // detect collision
+                collide(circles[circle], circles);
+            }
+        }
+
+        // create circle function
+        this.createCircle = function (x,y,r) {
+
+            var newCircle = new Circle(x,y,r,counter++);
+            circles.push(newCircle);
+        }
+
+        // remove circle function
+        this.removeCircle = function (circleID, circlesArr) {
+
+            // delete circle from array of circles
+            delete circlesArr[circleID];
+
+            // remove circle from svg element
+            var circle = document.getElementById('svg').getElementById(circleID);
+            document.getElementById('svg').removeChild(circle);
+        }
+
+        // function to merge two circles
+        this.mergeCircles = function (circle1, circle2, circlesArr) {
+
+            // update radius of merged circle (circle1) on arr of circles
+            var newCircleInfo = circle1.info;
+
+            // update radius of merged circle
+            newCircleInfo.r = parseFloat(circle1.info.r + circle2.info.r);
+
+            // get svg element
+            var svg = document.getElementById('svg');
+
+            // change coordinates and radius of merged circle on arr of circles
+            circles[circle1.info.id].info.x = newCircleInfo.x;
+            circles[circle1.info.id].info.y = newCircleInfo.y;
+            circles[circle1.info.id].info.r = newCircleInfo.r;
+            circles[circle1.info.id].info.velocity.x = circle2.info.velocity.x;
+            circles[circle1.info.id].info.velocity.y = circle2.info.velocity.y;
+
+            // change coordinates/ radius of merged circle on svg element
+            svg.getElementById(circle1.info.id).setAttribute('x', newCircleInfo.x);
+            svg.getElementById(circle1.info.id).setAttribute('y', newCircleInfo.y);
+            svg.getElementById(circle1.info.id).setAttribute('r', newCircleInfo.r);
+
+            // remove circle2 since its radius merged with circle1
+            self.removeCircle(circle2.info.id, circlesArr);
+        }
+
+        // create one circle when game starts
+        this.createCircle(window.innerWidth/2, window.innerHeight/2, 5);
+    }
+
+    var playground = new PlayGround();
+    setInterval(playground.loop, 15);
+
+    // detect how long your mouse was clicked for
+    function getTime() {
+        var date = new Date();
+        return date.getTime();
+    }
+
+    document.onmousedown = function (e) {
+        mousedown_time = getTime();
+    }
+
+    document.onmouseup = function (e) {
+        time_pressed = (getTime() - mousedown_time) / 20;
+        playground.createCircle(e.x, e.y, time_pressed);
+    }
+</script>
+</body>
+</html>
